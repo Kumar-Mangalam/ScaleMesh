@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: route-engine-service
+  namespace: scalemesh
+  labels:
+    app: route-engine-service
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: route-engine-service
+  template:
+    metadata:
+      labels:
+        app: route-engine-service
+    spec:
+      serviceAccountName: scalemesh-service-account
+      containers:
+        - name: route-engine
+          image: scalemesh/route-engine-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8084
+              name: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8084
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8084
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8084
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: route-engine-service
+  namespace: scalemesh
+  labels:
+    app: route-engine-service
+spec:
+  selector:
+    app: route-engine-service
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084

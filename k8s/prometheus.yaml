@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: scalemesh
+  labels:
+    app: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+      evaluation_interval: 5s
+
+    rule_files:
+      - /etc/prometheus/alerts.yml
+
+    scrape_configs:
+      - job_name: 'api-gateway'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['api-gateway:8081']
+
+      - job_name: 'demand-analysis-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['demand-analysis-service:8085']
+
+      - job_name: 'fleet-telemetry-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['fleet-telemetry-service:8082']
+
+      - job_name: 'incident-manager-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['incident-manager-service:8086']
+
+      - job_name: 'route-engine-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['route-engine-service:8084']
+
+      - job_name: 'trip-dispatch-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['trip-dispatch-service:8083']
+
+  alerts.yml: |
+    groups:
+      - name: scalemesh_alerts
+        rules:
+          - alert: MicroserviceInstanceDown
+            expr: up == 0
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Microservice instance {{ $labels.instance }} is down"
+              description: "Service {{ $labels.job }} on {{ $labels.instance }} has been unreachable for more than 30 seconds."
+
+          - alert: HighHttpErrorRate
+            expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[1m])) / sum(rate(http_server_requests_seconds_count[1m])) > 0.05
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "HTTP 5xx error rate exceeds 5%"
+              description: "Microservice {{ $labels.job }} is failing with high error rates."
+
+          - alert: DemandAnalysisHighConcurrency
+            expr: scalemesh_demand_active_concurrency > 8
+            for: 20s
+            labels:
+              severity: warning
+            annotations:
+              summary: "High concurrent demand load detected"
+              description: "Active concurrency in demand-analysis-service is at {{ $value }}, triggering HPA scale-up event."
+
+          - alert: TripDispatchQueueCongestion
+            expr: scalemesh_trips_created_total - scalemesh_trips_dispatched_total > 50
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Trip dispatch backlog increasing"
+              description: "More than 50 requested trips are waiting for fleet assignment."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: scalemesh
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3.0.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+            - "--web.console.templates=/usr/share/prometheus/consoles"
+          ports:
+            - containerPort: 9090
+              name: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+            - name: storage-volume
+              mountPath: /prometheus
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+        - name: storage-volume
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: scalemesh
+  labels:
+    app: prometheus
+spec:
+  type: NodePort
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+      nodePort: 30090
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-ingress
+  namespace: scalemesh
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 9090
+  policyTypes:
+    - Ingress

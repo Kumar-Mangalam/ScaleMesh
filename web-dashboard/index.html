@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScaleMesh - Elastic Fleet Coordination Platform</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --success: #4ade80;
+      --warning: #facc15;
+      --danger: #f87171;
+      --accent: #818cf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--card-border); margin-bottom: 24px; }
+    h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+    .badge { background: #0369a1; color: #e0f2fe; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+    .card h2 { font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; justify-content: space-between; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .status-online { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+    .status-offline { background-color: var(--danger); box-shadow: 0 0 8px var(--danger); }
+    button { background: var(--primary); color: #0f172a; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
+    button.btn-danger { background: var(--danger); color: white; }
+    button.btn-success { background: var(--success); color: #0f172a; }
+    button.btn-accent { background: var(--accent); color: white; }
+    input, select, textarea { width: 100%; padding: 8px 10px; background: #0b1120; border: 1px solid var(--card-border); border-radius: 6px; color: var(--text); font-size: 0.9rem; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 0.8rem; color: var(--text-muted); }
+    pre { background: #0b1120; padding: 10px; border-radius: 6px; font-size: 0.8rem; overflow-x: auto; max-height: 180px; color: #a5f3fc; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .pill-green { background: #064e3b; color: #6ee7b7; }
+    .pill-yellow { background: #713f12; color: #fde047; }
+    .pill-red { background: #7f1d1d; color: #fca5a5; }
+    .stats-row { display: flex; gap: 12px; }
+    .stat-box { flex: 1; background: #0b1120; border: 1px solid var(--card-border); border-radius: 6px; padding: 10px; text-align: center; }
+    .stat-val { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>ScaleMesh Platform <span class="badge">B.Tech CSE Final Year</span></h1>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">
+        Cloud-Native Elastic Fleet Coordination & Microservices Architecture
+      </p>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <label for="gatewayUrl" style="margin: 0;">API Gateway:</label>
+      <input type="text" id="gatewayUrl" value="http://localhost:8081" style="width: 200px;">
+      <button onclick="refreshAll()">Refresh All</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 1. System Health & Gateway Topology -->
+    <div class="card">
+      <h2>1. Platform Service Health <span id="healthDot" class="status-dot status-offline"></span></h2>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" id="gatewayStatus">OFFLINE</div><div class="stat-label">Gateway</div></div>
+        <div class="stat-box"><div class="stat-val" id="healthyCount">0 / 5</div><div class="stat-label">Services Up</div></div>
+      </div>
+      <pre id="healthJson">Checking gateway connectivity...</pre>
+      <button onclick="checkHealth()">Ping Services Health</button>
+    </div>
+
+    <!-- 2. Compute Nodes Lifecycle (Core Backend Req A) -->
+    <div class="card">
+      <h2>2. Compute-Node Management (Req A)</h2>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="nodeName" placeholder="Node Name (e.g. worker-node-a)">
+        <input type="number" id="nodeCpu" placeholder="Cores" value="4" style="width: 80px;">
+        <input type="number" id="nodeMem" placeholder="GB" value="8" style="width: 80px;">
+        <button class="btn-success" onclick="createNode()">Create</button>
+      </div>
+      <pre id="nodesJson">Loading nodes...</pre>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="targetNodeId" placeholder="Node UUID to Start/Stop/Delete">
+        <button onclick="startNode()">Start</button>
+        <button class="btn-danger" onclick="stopNode()">Stop</button>
+        <button class="btn-danger" onclick="deleteNode()">Delete</button>
+      </div>
+    </div>
+
+    <!-- 3. Fleet Telemetry Ingestion -->
+    <div class="card">
+      <h2>3. Fleet Telemetry Ingestion</h2>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="vehicleId" placeholder="Vehicle ID" value="FLEET-VEH-101">
+        <input type="number" id="vehSpeed" placeholder="Speed km/h" value="45.5" style="width: 90px;">
+        <input type="number" id="vehBattery" placeholder="Battery %" value="88.0" style="width: 90px;">
+        <button onclick="sendTelemetry()">Ingest</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" id="activeVehCount">-</div><div class="stat-label">Active Vehicles</div></div>
+        <div class="stat-box"><div class="stat-val" id="avgSpeedVal">-</div><div class="stat-label">Avg Speed</div></div>
+      </div>
+      <pre id="telemetryJson">No telemetry queried yet</pre>
+      <button onclick="fetchFleetStats()">Query Fleet Stats</button>
+    </div>
+
+    <!-- 4. Deterministic Trip Dispatch -->
+    <div class="card">
+      <h2>4. Trip Dispatch Engine</h2>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="passengerId" placeholder="Passenger ID" value="PASSENGER-77">
+        <select id="tripPriority">
+          <option value="STANDARD">STANDARD</option>
+          <option value="HIGH">HIGH</option>
+          <option value="CRITICAL">CRITICAL</option>
+        </select>
+        <button class="btn-success" onclick="requestTrip()">Request Trip</button>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="activeTripId" placeholder="Trip ID (e.g. TRIP-ABCD1234)">
+        <button onclick="dispatchTrip()">Dispatch</button>
+        <button class="btn-accent" onclick="completeTrip()">Complete</button>
+      </div>
+      <pre id="tripsJson">Loading trips...</pre>
+    </div>
+
+    <!-- 5. Route Engine Service -->
+    <div class="card">
+      <h2>5. Route Engine Simulator</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <input type="number" step="0.0001" id="origLat" value="37.7749" placeholder="Orig Lat">
+        <input type="number" step="0.0001" id="origLng" value="-122.4194" placeholder="Orig Lng">
+        <input type="number" step="0.0001" id="destLat" value="37.7833" placeholder="Dest Lat">
+        <input type="number" step="0.0001" id="destLng" value="-122.4167" placeholder="Dest Lng">
+      </div>
+      <button onclick="calculateRoute()">Calculate Optimal Route</button>
+      <pre id="routeJson">Enter coordinates and calculate route</pre>
+    </div>
+
+    <!-- 6. Demand Analysis & HPA Load Trigger -->
+    <div class="card">
+      <h2>6. Elastic Demand Analysis (HPA Target)</h2>
+      <div style="display: flex; gap: 8px;">
+        <select id="demandRegion">
+          <option value="downtown-core">downtown-core</option>
+          <option value="tech-corridor">tech-corridor</option>
+          <option value="airport-suburb">airport-suburb</option>
+        </select>
+        <select id="demandIntensity">
+          <option value="1">Normal (Low CPU)</option>
+          <option value="3">Elevated Load</option>
+          <option value="5">HPA Burst Surge (Max CPU)</option>
+        </select>
+        <button class="btn-danger" onclick="triggerDemandCompute()">Run CPU Stress</button>
+      </div>
+      <pre id="demandJson">Ready for spatial demand computation...</pre>
+    </div>
+
+    <!-- 7. Incident Manager Service -->
+    <div class="card">
+      <h2>7. Incident Management</h2>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="incidentVeh" placeholder="Vehicle ID" value="FLEET-VEH-101">
+        <select id="incidentType">
+          <option value="MECHANICAL_FAILURE">MECHANICAL_FAILURE</option>
+          <option value="BATTERY_DEPLETED">BATTERY_DEPLETED</option>
+          <option value="COLLISION">COLLISION</option>
+          <option value="SENSOR_MALFUNCTION">SENSOR_MALFUNCTION</option>
+        </select>
+        <select id="incidentSev">
+          <option value="LOW">LOW</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="HIGH">HIGH</option>
+          <option value="CRITICAL">CRITICAL</option>
+        </select>
+        <button class="btn-danger" onclick="reportIncident()">Report</button>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="targetIncidentId" placeholder="Incident ID to Resolve">
+        <button class="btn-success" onclick="resolveIncident()">Resolve</button>
+      </div>
+      <pre id="incidentsJson">Loading incidents...</pre>
+    </div>
+  </div>
+
+  <script>
+    function getGateway() {
+      return document.getElementById('gatewayUrl').value.replace(/\/$/, '');
+    }
+
+    function unpack(json) {
+      if (json && typeof json === 'object' && 'data' in json && json.data !== null && json.data !== undefined) {
+        return json.data;
+      }
+      return json;
+    }
+
+    async function checkHealth() {
+      const dot = document.getElementById('healthDot');
+      const gwStatus = document.getElementById('gatewayStatus');
+      const countLabel = document.getElementById('healthyCount');
+      const out = document.getElementById('healthJson');
+      try {
+        const res = await fetch(`${getGateway()}/api/system/health`);
+        const raw = await res.json();
+        const data = unpack(raw);
+        out.textContent = JSON.stringify(raw, null, 2);
+        dot.className = 'status-dot status-online';
+        gwStatus.textContent = data.status || 'UP';
+        gwStatus.style.color = '#4ade80';
+        const svcs = data.services || {};
+        const upCount = Object.values(svcs).filter(s => s === 'UP' || (typeof s === 'object' && s.status === 'UP')).length;
+        countLabel.textContent = `${upCount} / ${Object.keys(svcs).length || 5}`;
+      } catch (e) {
+        out.textContent = `Gateway unreachable at ${getGateway()}: ${e.message}`;
+        dot.className = 'status-dot status-offline';
+        gwStatus.textContent = 'DOWN';
+        gwStatus.style.color = '#f87171';
+        countLabel.textContent = '0 / 5';
+      }
+    }
+
+    async function fetchNodes() {
+      try {
+        const res = await fetch(`${getGateway()}/api/nodes`);
+        const data = await res.json();
+        document.getElementById('nodesJson').textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('nodesJson').textContent = `Failed to fetch nodes: ${e.message}`;
+      }
+    }
+
+    async function createNode() {
+      const name = document.getElementById('nodeName').value;
+      const cpu = parseInt(document.getElementById('nodeCpu').value);
+      const mem = parseInt(document.getElementById('nodeMem').value);
+      const res = await fetch(`${getGateway()}/api/nodes`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, cpuCores: cpu, memoryGb: mem })
+      });
+      fetchNodes();
+    }
+
+    async function startNode() {
+      const id = document.getElementById('targetNodeId').value.trim();
+      if (!id) return alert('Enter Node UUID');
+      await fetch(`${getGateway()}/api/nodes/${id}/start`, { method: 'PUT' });
+      fetchNodes();
+    }
+
+    async function stopNode() {
+      const id = document.getElementById('targetNodeId').value.trim();
+      if (!id) return alert('Enter Node UUID');
+      await fetch(`${getGateway()}/api/nodes/${id}/stop`, { method: 'PUT' });
+      fetchNodes();
+    }
+
+    async function deleteNode() {
+      const id = document.getElementById('targetNodeId').value.trim();
+      if (!id) return alert('Enter Node UUID');
+      await fetch(`${getGateway()}/api/nodes/${id}`, { method: 'DELETE' });
+      fetchNodes();
+    }
+
+    async function sendTelemetry() {
+      const vehicleId = document.getElementById('vehicleId').value;
+      const speed = parseFloat(document.getElementById('vehSpeed').value);
+      const batteryLevel = parseFloat(document.getElementById('vehBattery').value);
+      const res = await fetch(`${getGateway()}/api/telemetry`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          vehicleId,
+          latitude: 37.7749 + (Math.random() - 0.5) * 0.05,
+          longitude: -122.4194 + (Math.random() - 0.5) * 0.05,
+          speedKmh: speed,
+          batteryPercent: batteryLevel,
+          status: 'EN_ROUTE'
+        })
+      });
+      const data = await res.json();
+      document.getElementById('telemetryJson').textContent = JSON.stringify(data, null, 2);
+      fetchFleetStats();
+    }
+
+    async function fetchFleetStats() {
+      try {
+        const res = await fetch(`${getGateway()}/api/telemetry/stats`);
+        const raw = await res.json();
+        const data = unpack(raw);
+        document.getElementById('activeVehCount').textContent = data.activeVehicles || 0;
+        document.getElementById('avgSpeedVal').textContent = (data.averageSpeedKmH || 0).toFixed(1) + ' km/h';
+      } catch (e) {}
+    }
+
+    async function requestTrip() {
+      const passengerId = document.getElementById('passengerId').value;
+      const priority = document.getElementById('tripPriority').value;
+      const res = await fetch(`${getGateway()}/api/trips`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          passengerId,
+          pickupLat: 37.7749,
+          pickupLng: -122.4194,
+          dropoffLat: 37.7891,
+          dropoffLng: -122.4014,
+          priority,
+          passengerCount: 1
+        })
+      });
+      const raw = await res.json();
+      const data = unpack(raw);
+      if (data && data.tripId) document.getElementById('activeTripId').value = data.tripId;
+      fetchTrips();
+    }
+
+    async function dispatchTrip() {
+      const id = document.getElementById('activeTripId').value.trim();
+      if (!id) return alert('Enter Trip ID');
+      await fetch(`${getGateway()}/api/trips/${id}/dispatch`, { method: 'POST' });
+      fetchTrips();
+    }
+
+    async function completeTrip() {
+      const id = document.getElementById('activeTripId').value.trim();
+      if (!id) return alert('Enter Trip ID');
+      await fetch(`${getGateway()}/api/trips/${id}/status?status=COMPLETED`, { method: 'PUT' });
+      fetchTrips();
+    }
+
+    async function fetchTrips() {
+      try {
+        const res = await fetch(`${getGateway()}/api/trips`);
+        const data = await res.json();
+        document.getElementById('tripsJson').textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('tripsJson').textContent = e.message;
+      }
+    }
+
+    async function calculateRoute() {
+      const origLat = parseFloat(document.getElementById('origLat').value);
+      const origLng = parseFloat(document.getElementById('origLng').value);
+      const destLat = parseFloat(document.getElementById('destLat').value);
+      const destLng = parseFloat(document.getElementById('destLng').value);
+      try {
+        const res = await fetch(`${getGateway()}/api/routes/calculate`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ originLat: origLat, originLng: origLng, destLat, destLng })
+        });
+        const data = await res.json();
+        document.getElementById('routeJson').textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('routeJson').textContent = `Calculation failed: ${e.message}`;
+      }
+    }
+
+    async function triggerDemandCompute() {
+      const regionId = document.getElementById('demandRegion').value;
+      const intensity = parseInt(document.getElementById('demandIntensity').value);
+      const burnMs = intensity * 50;
+      document.getElementById('demandJson').textContent = `Executing CPU matrix convolution (Intensity: ${intensity}, Burn: ${burnMs}ms)...`;
+      const res = await fetch(`${getGateway()}/api/demand/calculate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          regionId,
+          gridSize: 30 + intensity * 10,
+          iterationCount: 20000 * intensity,
+          cpuBurnMs: burnMs,
+          intensityLevel: intensity
+        })
+      });
+      const data = await res.json();
+      document.getElementById('demandJson').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function reportIncident() {
+      const vehicleId = document.getElementById('incidentVeh').value;
+      const type = document.getElementById('incidentType').value;
+      const severity = document.getElementById('incidentSev').value;
+      const res = await fetch(`${getGateway()}/api/incidents`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          vehicleId,
+          incidentType: type,
+          type,
+          severity,
+          description: `Simulated incident for ${vehicleId}`,
+          latitude: 37.7749,
+          longitude: -122.4194
+        })
+      });
+      const raw = await res.json();
+      const data = unpack(raw);
+      if (data && (data.incidentId || data.id)) document.getElementById('targetIncidentId').value = data.incidentId || data.id;
+      fetchIncidents();
+    }
+
+    async function resolveIncident() {
+      const id = document.getElementById('targetIncidentId').value.trim();
+      if (!id) return alert('Enter Incident ID');
+      await fetch(`${getGateway()}/api/incidents/${id}/resolve`, { method: 'PUT' });
+      fetchIncidents();
+    }
+
+    async function fetchIncidents() {
+      try {
+        const res = await fetch(`${getGateway()}/api/incidents`);
+        const data = await res.json();
+        document.getElementById('incidentsJson').textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('incidentsJson').textContent = e.message;
+      }
+    }
+
+    function refreshAll() {
+      checkHealth();
+      fetchNodes();
+      fetchFleetStats();
+      fetchTrips();
+      fetchIncidents();
+    }
+
+    // Initial trigger
+    refreshAll();
+  </script>
+</body>
+</html>

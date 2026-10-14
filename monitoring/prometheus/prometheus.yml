@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: "scalemesh-api-gateway"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["api-gateway:8081", "localhost:8081"]
+
+  - job_name: "scalemesh-fleet-telemetry"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["fleet-telemetry-service:8082", "localhost:8082"]
+
+  - job_name: "scalemesh-trip-dispatch"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["trip-dispatch-service:8083", "localhost:8083"]
+
+  - job_name: "route-engine-service"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["route-engine-service:8084", "localhost:8084"]
+
+  - job_name: "demand-analysis-service"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["demand-analysis-service:8085", "localhost:8085"]
+
+  - job_name: "incident-manager-service"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["incident-manager-service:8086", "localhost:8086"]

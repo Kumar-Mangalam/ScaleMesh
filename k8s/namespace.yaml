@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scalemesh
+  labels:
+    app.kubernetes.io/name: scalemesh
+    app.kubernetes.io/part-of: scalemesh-platform

@@ -1,0 +1,66 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Logs & Runtime Artifacts ###
+logs/
+*.log
+startup-log.txt
+
+### Environment & Local Config ###
+.env
+.env.local
+!.env.example
+
+### Terraform Cache & State ###
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+### Operating System ###
+.DS_Store
+Thumbs.db
+
+### Python Bytecode & Cache ###
+__pycache__/
+*.py[cod]
+*$py.class
+
+### Kubernetes Local Secrets ###
+k8s/secrets.yaml
+!k8s/secrets.yaml.example
+
+### Obsolete Top-Level Prototype Directory ###
+/src/
+

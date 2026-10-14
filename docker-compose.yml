@@ -1,0 +1,186 @@
+version: '3.8'
+
+networks:
+  scalemesh-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  prometheus-data:
+  grafana-data:
+
+services:
+  mysql:
+    image: mysql:8.0.36
+    container_name: scalemesh-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_DATABASE: scalemesh_telemetry
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./scripts/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - scalemesh-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${DB_PASSWORD:-password} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  fleet-telemetry-service:
+    build:
+      context: ./services/fleet-telemetry-service
+      dockerfile: Dockerfile
+    image: scalemesh/fleet-telemetry-service:1.0.0
+    container_name: scalemesh-fleet-telemetry
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      SERVER_PORT: 8082
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: scalemesh_telemetry
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - scalemesh-network
+
+  trip-dispatch-service:
+    build:
+      context: ./services/trip-dispatch-service
+      dockerfile: Dockerfile
+    image: scalemesh/trip-dispatch-service:1.0.0
+    container_name: scalemesh-trip-dispatch
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      SERVER_PORT: 8083
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: scalemesh_trips
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "8083:8083"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - scalemesh-network
+
+  route-engine-service:
+    build:
+      context: ./services/route-engine-service
+      dockerfile: Dockerfile
+    image: scalemesh/route-engine-service:1.0.0
+    container_name: scalemesh-route-engine
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8084
+    ports:
+      - "8084:8084"
+    networks:
+      - scalemesh-network
+
+  demand-analysis-service:
+    build:
+      context: ./services/demand-analysis-service
+      dockerfile: Dockerfile
+    image: scalemesh/demand-analysis-service:1.0.0
+    container_name: scalemesh-demand-analysis
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8085
+    ports:
+      - "8085:8085"
+    networks:
+      - scalemesh-network
+
+  incident-manager-service:
+    build:
+      context: ./services/incident-manager-service
+      dockerfile: Dockerfile
+    image: scalemesh/incident-manager-service:1.0.0
+    container_name: scalemesh-incident-manager
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      SERVER_PORT: 8086
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: scalemesh_incidents
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "8086:8086"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - scalemesh-network
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    image: scalemesh/api-gateway:1.0.0
+    container_name: scalemesh-api-gateway
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8081
+      SERVICES_TELEMETRY_URL: http://fleet-telemetry-service:8082
+      SERVICES_DISPATCH_URL: http://trip-dispatch-service:8083
+      SERVICES_ROUTING_URL: http://route-engine-service:8084
+      SERVICES_DEMAND_URL: http://demand-analysis-service:8085
+      SERVICES_INCIDENT_URL: http://incident-manager-service:8086
+    ports:
+      - "8081:8081"
+    depends_on:
+      - fleet-telemetry-service
+      - trip-dispatch-service
+      - route-engine-service
+      - demand-analysis-service
+      - incident-manager-service
+    networks:
+      - scalemesh-network
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: scalemesh-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - scalemesh-network
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: scalemesh-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - scalemesh-network

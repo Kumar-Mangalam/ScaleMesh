@@ -1,0 +1,296 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: scalemesh
+  labels:
+    app: grafana
+data:
+  prometheus.yml: |
+    apiVersion: 1
+
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: true
+
+  dashboards.yml: |
+    apiVersion: 1
+
+    providers:
+      - name: 'ScaleMesh Dashboards'
+        orgId: 1
+        folder: 'ScaleMesh'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: scalemesh
+  labels:
+    app: grafana
+data:
+  scalemesh-fleet.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "id": 1,
+          "title": "Platform Health & Ingestion Rate",
+          "type": "row"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
+          "gridPos": { "h": 7, "w": 8, "x": 0, "y": 1 },
+          "id": 2,
+          "title": "API Gateway Request Throughput",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count[1m]))",
+              "legendFormat": "Total Throughput (req/s)"
+            }
+          ]
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": { "defaults": { "unit": "ops" } },
+          "gridPos": { "h": 7, "w": 8, "x": 8, "y": 1 },
+          "id": 3,
+          "title": "Fleet Telemetry Ingestion Rate",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(scalemesh_telemetry_events_ingested_total[1m])",
+              "legendFormat": "Telemetry Events / sec"
+            }
+          ]
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": { "defaults": { "unit": "short" } },
+          "gridPos": { "h": 7, "w": 8, "x": 16, "y": 1 },
+          "id": 4,
+          "title": "Active Vehicles Monitored",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "scalemesh_fleet_active_vehicles",
+              "legendFormat": "Active Fleet"
+            }
+          ]
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 },
+          "id": 5,
+          "title": "Elastic Autoscaling & Demand Engine",
+          "type": "row"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": { "defaults": { "unit": "short" } },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+          "id": 6,
+          "title": "Demand Engine Active Concurrency (HPA Trigger)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "scalemesh_demand_active_concurrency",
+              "legendFormat": "Concurrent CPU Calculations"
+            }
+          ]
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": { "defaults": { "unit": "ms" } },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+          "id": 7,
+          "title": "Demand Calculation Latency",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(scalemesh_demand_computation_duration_seconds_sum[1m]) / rate(scalemesh_demand_computation_duration_seconds_count[1m]) * 1000",
+              "legendFormat": "Mean Computation Latency (ms)"
+            }
+          ]
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+          "id": 8,
+          "title": "Trip Dispatch & Incident Lifecycle",
+          "type": "row"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": { "defaults": { "unit": "short" } },
+          "gridPos": { "h": 7, "w": 12, "x": 0, "y": 18 },
+          "id": 9,
+          "title": "Trip Lifecycle Status",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "scalemesh_trips_created_total",
+              "legendFormat": "Created"
+            },
+            {
+              "expr": "scalemesh_trips_dispatched_total",
+              "legendFormat": "Dispatched"
+            },
+            {
+              "expr": "scalemesh_trips_completed_total",
+              "legendFormat": "Completed"
+            }
+          ]
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": { "defaults": { "unit": "short" } },
+          "gridPos": { "h": 7, "w": 12, "x": 12, "y": 18 },
+          "id": 10,
+          "title": "Incident Resolution Breakdown",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "scalemesh_incidents_reported_total",
+              "legendFormat": "Reported"
+            },
+            {
+              "expr": "scalemesh_incidents_resolved_total",
+              "legendFormat": "Resolved"
+            }
+          ]
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["scalemesh", "fleet", "microservices"],
+      "time": {
+        "from": "now-15m",
+        "to": "now"
+      },
+      "timepicker": {
+        "refresh_intervals": ["5s", "10s", "30s", "1m"]
+      },
+      "timezone": "browser",
+      "title": "ScaleMesh - Elastic Fleet Coordination Overview",
+      "uid": "scalemesh-fleet-overview",
+      "version": 1
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: scalemesh
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.4.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: "admin"
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: "Viewer"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: provisioning-datasources
+              mountPath: /etc/grafana/provisioning/datasources/prometheus.yml
+              subPath: prometheus.yml
+            - name: provisioning-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
+              subPath: dashboards.yml
+            - name: dashboards-volume
+              mountPath: /var/lib/grafana/dashboards/scalemesh-fleet.json
+              subPath: scalemesh-fleet.json
+      volumes:
+        - name: provisioning-datasources
+          configMap:
+            name: grafana-provisioning
+        - name: provisioning-dashboards
+          configMap:
+            name: grafana-provisioning
+        - name: dashboards-volume
+          configMap:
+            name: grafana-dashboards
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: scalemesh
+  labels:
+    app: grafana
+spec:
+  type: NodePort
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      nodePort: 30300
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-grafana-ingress
+  namespace: scalemesh
+spec:
+  podSelector:
+    matchLabels:
+      app: grafana
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 3000
+  policyTypes:
+    - Ingress

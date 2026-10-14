@@ -1,0 +1,38 @@
+groups:
+  - name: scalemesh_alerts
+    rules:
+      - alert: MicroserviceInstanceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Microservice instance {{ $labels.instance }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been unreachable for more than 30 seconds."
+
+      - alert: HighHttpErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[1m])) / sum(rate(http_server_requests_seconds_count[1m])) > 0.05
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx error rate exceeds 5%"
+          description: "Microservice {{ $labels.job }} is failing with high error rates."
+
+      - alert: DemandAnalysisHighConcurrency
+        expr: scalemesh_demand_active_concurrency > 8
+        for: 20s
+        labels:
+          severity: warning
+        annotations:
+          summary: "High concurrent demand load detected"
+          description: "Active concurrency in demand-analysis-service is at {{ $value }}, triggering HPA scale-up event."
+
+      - alert: TripDispatchQueueCongestion
+        expr: scalemesh_trips_created_total - scalemesh_trips_dispatched_total > 50
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Trip dispatch backlog increasing"
+          description: "More than 50 requested trips are waiting for fleet assignment."

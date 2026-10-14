@@ -1,0 +1,149 @@
+### Create the first compute node
+POST http://localhost:8081/api/nodes
+Content-Type: application/json
+
+{
+  "name": "worker-node-1",
+  "cpuCores": 2,
+  "memoryGb": 4
+}
+
+### Get all compute nodes
+GET http://localhost:8081/api/nodes
+
+### Get a compute node by ID
+GET http://localhost:8081/api/nodes/d6035c11-b3ed-4b5d-9e67-2ae01f5359a7
+
+### Delete a compute node
+DELETE http://localhost:8081/api/nodes/d6035c11-b3ed-4b5d-9e67-2ae01f5359a7
+
+### Verify all nodes after deletion
+GET http://localhost:8081/api/nodes
+
+### Test invalid compute node request
+POST http://localhost:8081/api/nodes
+Content-Type: application/json
+
+{
+  "name": "",
+  "cpuCores": -2,
+  "memoryGb": 0
+}
+
+### Test valid compute node creation
+POST http://localhost:8081/api/nodes
+Content-Type: application/json
+
+{
+  "name": "worker-node-2",
+  "cpuCores": 2,
+  "memoryGb": 4
+}
+
+### Start a compute node
+PUT http://localhost:8081/api/nodes/b6fccfec-91ae-4135-ae18-8cf038a73acd/start
+
+
+### Create a new node for start/stop testing
+POST http://localhost:8081/api/nodes
+Content-Type: application/json
+
+{
+  "name": "worker-node-3",
+  "cpuCores": 2,
+  "memoryGb": 4
+}
+
+
+### Start worker-node-3
+PUT http://localhost:8081/api/nodes/c9f7b414-7e2f-4aeb-9f33-63f793c45e77/start
+
+
+### Stop worker-node-3
+PUT http://localhost:8081/api/nodes/c9f7b414-7e2f-4aeb-9f33-63f793c45e77/stop
+
+
+### Verify all compute nodes
+GET http://localhost:8081/api/nodes
+
+### Check ScaleMesh health
+GET http://localhost:8081/api/health
+
+
+### Create a compute node
+POST http://localhost:8081/api/nodes
+Content-Type: application/json
+
+{
+  "name": "worker-node-4",
+  "cpuCores": 4,
+  "memoryGb": 8
+}
+
+
+### Start worker-node-4
+PUT http://localhost:8081/api/nodes/1d9206c1-1a53-48d8-9f4a-6b6a74ad8992/start
+
+
+### Stop worker-node-4
+PUT http://localhost:8081/api/nodes/1d9206c1-1a53-48d8-9f4a-6b6a74ad8992/stop
+
+### Check all compute nodes
+GET http://localhost:8081/api/nodes
+
+
+### Create node for update testing
+POST http://localhost:8081/api/nodes
+Content-Type: application/json
+
+{
+  "name": "worker-node-5",
+  "cpuCores": 2,
+  "memoryGb": 4
+}
+
+
+### Update worker-node-5
+PUT http://localhost:8081/api/nodes/cab9f682-4001-46d1-b054-b4844d74ed80
+Content-Type: application/json
+
+{
+  "name": "worker-node-5-updated",
+  "cpuCores": 4,
+  "memoryGb": 8
+}
+
+
+### Create node for update testing
+POST http://localhost:8081/api/nodes
+Content-Type: application/json
+
+{
+  "name": "worker-node-update-test",
+  "cpuCores": 2,
+  "memoryGb": 4
+}
+
+
+### Update worker-node-update-test
+PUT http://localhost:8081/api/nodes/95ce6a61-782c-4be4-b0bf-08ffcc7da391
+Content-Type: application/json
+
+{
+  "name": "worker-node-updated",
+  "cpuCores": 4,
+  "memoryGb": 8
+}
+
+
+### Verify updated compute node
+GET http://localhost:8081/api/nodes/95ce6a61-782c-4be4-b0bf-08ffcc7da391
+
+
+
+
+
+
+
+
+

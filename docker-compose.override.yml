@@ -1,0 +1,11 @@
+version: '3.8'
+
+# Development overrides for local troubleshooting
+services:
+  api-gateway:
+    environment:
+      LOGGING_LEVEL_COM_SCALEMESH: DEBUG
+
+  demand-analysis-service:
+    environment:
+      LOGGING_LEVEL_COM_SCALEMESH: DEBUG

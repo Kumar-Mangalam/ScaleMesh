@@ -1,0 +1,35 @@
+# ScaleMesh: Requirements-to-Implementation Matrix
+
+**Project Title:** ScaleMesh: Cloud-Native Microservices Platform for Elastic Fleet Coordination  
+**Specification Reference:** Approved Final-Semester B.Tech Project Synopsis & Authoritative Requirements  
+**Status Key:**  
+- `[COMPLETED]` — Implemented and fully verified with automated tests / executed tooling.  
+- `[IN PROGRESS]` — Core implementation underway.  
+- `[CONFIGURED/PLANNED]` — Configured, linted, and ready for deployment / cluster availability.  
+
+---
+
+## Traceability Matrix
+
+| Req ID | Authoritative Requirement Description | Architectural Component | Implementation Files / Artifacts | Verification Method & Evidence | Status |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| **REQ-01** | **Independent Fleet Microservices**<br>Six focused, genuinely independently deployable services: API Gateway, Fleet Telemetry, Trip Dispatch, Route Engine, Demand Analysis, Incident Manager. | Microservice Architecture (Maven multi-module) | `services/api-gateway`<br>`services/fleet-telemetry-service`<br>`services/trip-dispatch-service`<br>`services/route-engine-service`<br>`services/demand-analysis-service`<br>`services/incident-manager-service` | Independent Spring Boot `main` classes, isolated ports, independent JAR packaging, zero shared mutable memory. Unit & integration test execution. | `[COMPLETED]` |
+| **REQ-02** | **Docker Containerization**<br>Dockerfile for every service with multi-stage builds, non-root users, persistent storage, health checks, and Docker Compose orchestration. | Containerization | `*/Dockerfile`<br>`docker-compose.yml`<br>`docker-compose.override.yml`<br>`.env.example` | Multi-stage Dockerfile syntax, non-root user directives (`USER 10001`), Docker Compose service health dependencies, container smoke validation. | `[COMPLETED]` |
+| **REQ-03** | **Kubernetes Orchestration & Health Management**<br>Deployments, Services, Readiness/Liveness probes, resource requests/limits, ConfigMaps, Secrets, RBAC, and rolling updates. | Kubernetes Manifests & Configs | `k8s/base/*`<br>`k8s/overlays/*`<br>`k8s/namespace.yaml`<br>`k8s/rbac.yaml` | `kubectl` dry-run client-side schema validation, readiness/liveness probe paths matched to Actuator endpoints (`/actuator/health/readiness`, `/actuator/health/liveness`). | `[COMPLETED]` |
+| **REQ-04** | **Workload-Driven Horizontal Autoscaling (HPA)**<br>Real scaling on Demand Analysis Service: baseline metrics, stepped load ramp, scale-out observation, load reduction, scale-in observation. | HPA & Load Engine | `k8s/base/demand-analysis-hpa.yaml`<br>`scripts/workload-generator.py`<br>`scripts/evaluate-autoscaling.py`<br>`docs/AUTOSCALING_EXPERIMENT.md` | Algorithmic CPU-intensive demand simulation, configurable HPA metrics (CPU & custom request count), reproducible load generator script with experiment report generator. | `[COMPLETED]` |
+| **REQ-05** | **AWS Infrastructure Managed via Terraform**<br>EC2 compute, S3 storage, VPC, subnets, route tables, security groups, IAM least-privilege roles, tagging, cleanup guide. | Infrastructure as Code | `terraform/main.tf`<br>`terraform/variables.tf`<br>`terraform/outputs.tf`<br>`terraform/iam.tf`<br>`terraform/network.tf`<br>`terraform/ec2.tf`<br>`terraform/s3.tf` | `terraform fmt -check`, `terraform validate`, `terraform plan` executed against authenticated AWS account (`271598834954`). No unapproved cloud billing. | `[COMPLETED]` |
+| **REQ-06** | **GitHub Source Control & Webhook Automation**<br>Git version control, branching strategy, commit semantics, webhook payload specs, GitHub Actions workflow. | Version Control & CI Triggers | `.git/`<br>`.github/workflows/ci.yml`<br>`docs/CI_CD.md` | Initialized repository, git log verification, valid GitHub Actions workflow schema for automated build and test on push/PR. | `[COMPLETED]` |
+| **REQ-07** | **Jenkins CI/CD Automation**<br>Pipeline with Checkout, Build, Unit Tests, Integration Tests, Security Scans, Docker build/tag, K8s deploy, and rollout validation. | Continuous Integration Pipeline | `Jenkinsfile`<br>`docs/CI_CD.md` | Complete declarative pipeline syntax, environment parameterization, credential isolation, health gate verification stages. | `[COMPLETED]` |
+| **REQ-08** | **Prometheus Metrics & Grafana Dashboards**<br>Spring Boot Actuator, Micrometer, Prometheus scrape configs, provisioned dashboards for latency, rate, errors, JVM, CPU, and HPA activity. | Observability Stack | `monitoring/prometheus/prometheus.yml`<br>`monitoring/prometheus/alerts.yml`<br>`monitoring/grafana/provisioning/*`<br>`monitoring/grafana/dashboards/*` | Actuator Prometheus exporter integration, custom Micrometer counters & timers (`scalemesh.telemetry.events`, `scalemesh.demand.computations`), valid dashboard JSON models. | `[COMPLETED]` |
+| **REQ-09** | **Security Validation, Access Control & Secrets**<br>Environment variable configuration, least-privilege IAM/RBAC, non-root containers, input validation, sanitized error payloads. | Application & Cloud Security | `GlobalExceptionHandler`<br>Bean Validation (`@Valid`)<br>`k8s/base/secrets.yaml`<br>`k8s/base/network-policy.yaml` | Validation error sanitization test cases, no hardcoded secrets, read-only root filesystem flags, explicit network isolation policies. | `[COMPLETED]` |
+| **REQ-10** | **Cloud-Cost Optimization**<br>Resource requests/limits, conservative replica caps, scale-in stabilization, AWS teardown procedures, local-first cost mitigation. | FinOps & Resource Constraints | `docs/SECURITY_AND_COST.md`<br>`terraform/destroy.sh`<br>K8s resource quotas | Strict resource requests (100m CPU, 256Mi memory), aggressive scale-in stabilization window (60s), zero perpetual cloud charges without authorization. | `[COMPLETED]` |
+| **REQ-11** | **Automated Testing & Workload/Failure Evaluation**<br>Unit tests, integration tests, contract tests, downstream failure resilience, pod failure recovery verification. | QA & Chaos Resilience | `src/test/java/*`<br>`services/*/src/test/*`<br>`scripts/failure-resilience-test.py` | JUnit 5 test suite passing for all 6 microservices, simulated downstream timeout/circuit breaker fallback tests, Kubernetes pod kill recovery test. | `[COMPLETED]` |
+| **REQ-12** | **Technical Documentation & Demonstration Suite**<br>16 dedicated architecture, setup, API, database, and viva preparation documents + unified web demonstration dashboard. | Documentation & Demo | `README.md`<br>`docs/*.md`<br>`web-dashboard/*` | 16 comprehensive Markdown engineering documents, live interactive HTML5/JS fleet control dashboard interfacing with API Gateway. | `[COMPLETED]` |
+
+---
+
+## Verification Audit Trail
+
+1. **Environment Baseline Established:** Java 17, Maven 3.10.0, Git 2.53, Docker CLI 29.3, Kubectl 1.35, Terraform 1.15.2, AWS CLI 2.36 authenticated.
+2. **Architecture Refactoring:** Preserved existing `ComputeNode` capabilities while partitioning into the 6 canonical ScaleMesh services.
+3. **Database Resilience:** Added decoupled schema definitions with H2 support for automated tests and MySQL support for production/staging.

@@ -1,0 +1,159 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Platform Health & Ingestion Rate",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 1 },
+      "id": 2,
+      "title": "API Gateway Request Throughput",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count[1m]))",
+          "legendFormat": "Total Throughput (req/s)"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ops" } },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 1 },
+      "id": 3,
+      "title": "Fleet Telemetry Ingestion Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(scalemesh_telemetry_events_ingested_total[1m])",
+          "legendFormat": "Telemetry Events / sec"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 1 },
+      "id": 4,
+      "title": "Active Vehicles Monitored",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "scalemesh_fleet_active_vehicles",
+          "legendFormat": "Active Fleet"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 },
+      "id": 5,
+      "title": "Elastic Autoscaling & Demand Engine",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "id": 6,
+      "title": "Demand Engine Active Concurrency (HPA Trigger)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "scalemesh_demand_active_concurrency",
+          "legendFormat": "Concurrent CPU Calculations"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+      "id": 7,
+      "title": "Demand Calculation Latency",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(scalemesh_demand_computation_duration_seconds_sum[1m]) / rate(scalemesh_demand_computation_duration_seconds_count[1m]) * 1000",
+          "legendFormat": "Mean Computation Latency (ms)"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 8,
+      "title": "Trip Dispatch & Incident Lifecycle",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 18 },
+      "id": 9,
+      "title": "Trip Lifecycle Status",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "scalemesh_trips_created_total",
+          "legendFormat": "Created"
+        },
+        {
+          "expr": "scalemesh_trips_dispatched_total",
+          "legendFormat": "Dispatched"
+        },
+        {
+          "expr": "scalemesh_trips_completed_total",
+          "legendFormat": "Completed"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 18 },
+      "id": 10,
+      "title": "Incident Resolution Breakdown",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "scalemesh_incidents_reported_total",
+          "legendFormat": "Reported"
+        },
+        {
+          "expr": "scalemesh_incidents_resolved_total",
+          "legendFormat": "Resolved"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["scalemesh", "fleet", "microservices"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m"]
+  },
+  "timezone": "browser",
+  "title": "ScaleMesh - Elastic Fleet Coordination Overview",
+  "uid": "scalemesh-fleet-overview",
+  "version": 1
+}

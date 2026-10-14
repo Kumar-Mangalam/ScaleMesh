@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: api-gateway
+
+server:
+  port: ${SERVER_PORT:8081}
+
+services:
+  telemetry:
+    url: ${SERVICES_TELEMETRY_URL:http://localhost:8082}
+  dispatch:
+    url: ${SERVICES_DISPATCH_URL:http://localhost:8083}
+  routing:
+    url: ${SERVICES_ROUTING_URL:http://localhost:8084}
+  demand:
+    url: ${SERVICES_DEMAND_URL:http://localhost:8085}
+  incident:
+    url: ${SERVICES_INCIDENT_URL:http://localhost:8086}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
